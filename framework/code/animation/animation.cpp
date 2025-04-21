@@ -13,7 +13,7 @@
 #include <iterator>
 #include <optional>
 #include <string>
-#include "glm\gtx\quaternion.hpp"
+#include "glm/gtx/quaternion.hpp"
 
 static const glm::quat cRotateToYUp{ 0.7071067094802856f, -0.7071068286895752f, 0.f, 0.f };
 static const glm::quat cIdentityRotate = glm::identity<glm::quat>();

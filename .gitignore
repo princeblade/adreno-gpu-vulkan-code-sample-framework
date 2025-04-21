@@ -120,3 +120,13 @@ samples/BloomImageProcessing/assets_tmp/
 project/tools/ktx.dll
 project/tools/ktxinfo.exe
 project/tools/toktx.exe
+
+
+.idea/
+project/*/.idea/*
+*.DS_Store
+*/assets_tmp/*
+project/android/java_pid9451.hprof
+samples/sgsr/assets_tmp/
+samples/sgsr2/assets_tmp/
+samples/rayReflections/assets_tmp/

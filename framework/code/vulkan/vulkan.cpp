@@ -4071,7 +4071,7 @@ bool Vulkan::PresentQueue(const std::span<const VkSemaphore> pWaitSemaphores, ui
         VkSurfaceCapabilitiesKHR optimalSurfaceCaps;
         if (QuerySurfaceCapabilities(optimalSurfaceCaps))
         {
-            LOGE("Swapchain is not optimal! Should still be presented\n  Ideal swapchain %d x %d (actual %d x %d)", optimalSurfaceCaps.currentExtent.width, optimalSurfaceCaps.currentExtent.height, m_SurfaceWidth, m_SurfaceHeight);
+            // LOGE("Swapchain is not optimal! Should still be presented\n  Ideal swapchain %d x %d (actual %d x %d)", optimalSurfaceCaps.currentExtent.width, optimalSurfaceCaps.currentExtent.height, m_SurfaceWidth, m_SurfaceHeight);
         }
     }
     else

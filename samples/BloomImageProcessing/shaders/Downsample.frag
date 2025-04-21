@@ -25,16 +25,18 @@ void main()
     
 	ivec2 srcSize = textureSize(sampler2D(SourceTexture, SourceSampler), 0);
 
-	const float StepX = 1.0 / float(srcSize.x);
-	const float StepY = 1.0 / float(srcSize.y);
-	downsampleColor = (
-		texture(sampler2D(SourceTexture, SourceSampler), in_TEXCOORD0 + vec2(0, 0)) +
-		texture(sampler2D(SourceTexture, SourceSampler), in_TEXCOORD0 + vec2(StepX, 0)) +
-		texture(sampler2D(SourceTexture, SourceSampler), in_TEXCOORD0 + vec2(0, StepY)) +
-		texture(sampler2D(SourceTexture, SourceSampler), in_TEXCOORD0 + vec2(StepX, StepY))
-	) / 4.0;
-    
-	downsampleColor.rgb = pow3(downsampleColor.rgb, 1.0/2.2);
+    // const float StepX = 1.0 / float(srcSize.x);
+    // const float StepY = 1.0 / float(srcSize.y);
+    // downsampleColor = (
+    // 	texture(sampler2D(SourceTexture, SourceSampler), in_TEXCOORD0 + vec2(0, 0)) +
+    // 	texture(sampler2D(SourceTexture, SourceSampler), in_TEXCOORD0 + vec2(StepX, 0)) +
+    // 	texture(sampler2D(SourceTexture, SourceSampler), in_TEXCOORD0 + vec2(0, StepY)) +
+    // 	texture(sampler2D(SourceTexture, SourceSampler), in_TEXCOORD0 + vec2(StepX, StepY))
+    // ) / 4.0;
+
+    downsampleColor = texture(sampler2D(SourceTexture, SourceSampler), in_TEXCOORD0);
+
+    downsampleColor.rgb = pow3(downsampleColor.rgb, 1.0/2.2);
 
 	float brightness = dot(downsampleColor.rgb, vec3(0.2126, 0.7152, 0.0722));
 	if (brightness < 0.35) // Discard darker areas

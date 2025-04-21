@@ -26,9 +26,9 @@ layout(location = 0) out vec4 FragColor;
 void main()
 {
 	const float StepX = 0;
-	const float StepY = 1.0 / 1080.0;
+    const float StepY = 1.0 / 540.0;
 
-	int WeightSize = int(_Globals.weights[0][0]);
+    int WeightSize = int(_Globals.weights[0][0]);
 	FragColor = vec4(0);
 	for (int ww = 0; ww < WeightSize; ++ww)
 	{

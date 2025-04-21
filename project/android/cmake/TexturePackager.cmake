@@ -6,7 +6,7 @@
 function(add_textures_from_path _path)
 
     # Attempt to find the converter tool, else display warning message
-    SET(CONVERTER_TOOL "${CMAKE_CURRENT_SOURCE_DIR}/../../project/tools/toktx.exe")
+    SET(CONVERTER_TOOL "${CMAKE_CURRENT_SOURCE_DIR}/../../project/tools/solution/KTX-Software/toktx")
     if(NOT EXISTS ${CONVERTER_TOOL})
         message(WARNING "TexturePackager -> Texture converter tool wasn't found, sample textures will not be generated (Run '03_BuildTools.bat' if that's desired) - ${CONVERTER_TOOL}")
         return()

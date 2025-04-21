@@ -24,7 +24,7 @@
 #include "texture/textureManager.hpp"
 #include "imgui.h"
 
-VAR(bool, gUseExtension, true, kVariableNonpersistent);
+VAR(bool, gUseExtension, false, kVariableNonpersistent);
 VAR(unsigned, gBlurFilterSize, 7, kVariableNonpersistent);
 
 #if OS_ANDROID
@@ -729,20 +729,23 @@ void BloomImageprocessing::BuildCmdBuffer(uint32_t idx)
     pCmdBuf->Reset();
     pCmdBuf->Begin();
 
-    for (uint32_t pp = 0; pp < Pass_Count; ++pp)
+    for (int i = 0; i < 500; ++i)
     {
-        if (pp > 0)
+        for (uint32_t pp = 0; pp < Pass_Count; ++pp)
         {
-            VkMemoryBarrier memBarrier = {};
-            memBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
-            memBarrier.pNext = NULL;
-            memBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-            memBarrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+            if (pp > 0)
+            {
+                VkMemoryBarrier memBarrier = {};
+                memBarrier.sType           = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+                memBarrier.pNext           = NULL;
+                memBarrier.srcAccessMask   = VK_ACCESS_SHADER_WRITE_BIT;
+                memBarrier.dstAccessMask   = VK_ACCESS_MEMORY_READ_BIT;
 
-            vkCmdPipelineBarrier(pCmdBuf->m_VkCommandBuffer, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0x0, 1, &memBarrier, 0, NULL, 0, NULL);
+                vkCmdPipelineBarrier(pCmdBuf->m_VkCommandBuffer, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0x0, 1, &memBarrier, 0, NULL, 0, NULL);
+            }
+
+            DrawPass(pCmdBuf, m_passes[pp], idx);
         }
-
-        DrawPass(pCmdBuf, m_passes[pp], idx);
     }
 
     pCmdBuf->End();
@@ -750,24 +753,32 @@ void BloomImageprocessing::BuildCmdBuffer(uint32_t idx)
 
 }
 
+// 生成卷积核权重数组（基于二项式系数分布）
 void BloomImageprocessing::BuildWeightArray(uint32_t weightSize, float* pWeightArray)
 {
+    // 计算二项式系数阶数（权重尺寸+3）
     uint32_t tri = weightSize + 3;
+    // 计算tri的阶乘
     uint64_t fact_tri = Factorial(tri);
 
+    // 分配二项式系数数组
     double* pTriVals = new double[tri+1];
     double triValSum = 0.0;
 
+    // 计算二项式分布值并求和（C(tri, n)）
     for (uint32_t ii = 0; ii < tri + 1; ++ii)
     {
         pTriVals[ii] = (double)fact_tri / ((double)Factorial(ii) * (double)Factorial(tri - ii));
         triValSum += pTriVals[ii];
     }
 
+    // 将中间部分的值归一化后作为权重值
+    // 偏移2个位置以获取中间最显著的权重区域
     for (uint32_t ii = 0; ii < weightSize; ++ii)
     {
         pWeightArray[ii] = (float)(pTriVals[ii + 2] / triValSum);
     }
 
+    // 清理临时数组
     delete[] pTriVals;
 }

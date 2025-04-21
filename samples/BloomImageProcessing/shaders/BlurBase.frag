@@ -39,10 +39,10 @@ void main()
 #else
 #if VERT_PASS
 	const float StepX = 0;
-	const float StepY = 1.0 / 1080.0;
+    const float StepY = 1.0 / 540.0;
 #else
-	const float StepX = 1.0 / 1920.0;
-	const float StepY = 0;
+    const float StepX = 1.0 / 960.0;
+    const float StepY = 0;
 #endif // VERT_PASS
 	int WeightSize = int(_Globals.weights[0][0]);
 	FragColor = vec4(0);
