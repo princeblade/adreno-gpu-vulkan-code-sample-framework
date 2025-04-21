@@ -15,6 +15,7 @@ layout(location = 0) noperspective in vec2 in_TEXCOORD0;
 layout(set = 0, binding = 0, std140) uniform WeightInfo
 {
     vec4 weights[8];
+    vec4 offsets[8];
 } _Globals;
 
 
@@ -31,9 +32,11 @@ void main()
     int WeightSize = int(_Globals.weights[0][0]);
 	FragColor = vec4(0);
 	for (int ww = 0; ww < WeightSize; ++ww)
-	{
-		float coordIndex = float(ww - WeightSize / 2);
-		ivec2 weightIndex = ivec2((ww + 1) / 4, (ww + 1) % 4);
-		FragColor += texture(sampler2D(SourceTexture, SourceSampler), in_TEXCOORD0 + vec2(coordIndex * StepX, coordIndex * StepY)) * _Globals.weights[weightIndex.x][weightIndex.y];
-	}
+    {
+        ivec2 weightIndex = ivec2((ww + 1) / 4, (ww + 1) % 4);
+        ivec2 offsetIndex = ivec2(ww / 4, ww % 4);
+        float offset      = _Globals.offsets[offsetIndex.x][offsetIndex.y];
+        vec2  uv          = in_TEXCOORD0 + vec2(offset * StepX, offset * StepY);
+        FragColor += texture(sampler2D(SourceTexture, SourceSampler), uv) * _Globals.weights[weightIndex.x][weightIndex.y];
+    }
 }

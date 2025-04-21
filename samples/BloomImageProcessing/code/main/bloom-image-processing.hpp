@@ -197,6 +197,7 @@ private:
         return ret;
     }
     static void BuildWeightArray(uint32_t weightSize, float* pWeightArray);
+    static void BuildOptimizedWeightArray(float *weights, float *offsets, float *pRawWeightData);
 
     struct Ext_VK_QCOM_image_processing : public VulkanDeviceFeaturePropertiesExtensionHelper<
         VkPhysicalDeviceImageProcessingFeaturesQCOM, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_PROCESSING_FEATURES_QCOM,

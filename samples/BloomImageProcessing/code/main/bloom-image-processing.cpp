@@ -25,6 +25,7 @@
 #include "imgui.h"
 
 VAR(bool, gUseExtension, false, kVariableNonpersistent);
+VAR(bool, gUseLinearSampling, true, kVariableNonpersistent);        // 控制是否启用线性采样优化
 VAR(unsigned, gBlurFilterSize, 7, kVariableNonpersistent);
 
 #if OS_ANDROID
@@ -37,10 +38,10 @@ VAR(unsigned, gBlurFilterSize, 7, kVariableNonpersistent);
 
 const char* BloomImageprocessing::ShaderSets[ShaderPair_Count][3] =
 {
-    {SHADERFILE("VertexShader.vert.spv"), SHADERFILE("Downsample.frag.spv"), SHADERFILE("Downsample-Ext.frag.spv")},// ShaderPair_Downsample,
-    {SHADERFILE("VertexShader.vert.spv"), SHADERFILE("BlurBase-Horizontal.frag.spv"), SHADERFILE("BlurBase-Horizontal-Ext.frag.spv")},// ShaderPair_Blur_Horizontal,
-    {SHADERFILE("VertexShader.vert.spv"), SHADERFILE("BlurBase-Vertical.frag.spv"), SHADERFILE("BlurBase-Vertical-Ext.frag.spv")},// ShaderPair_Blur_Vertical,
-    {SHADERFILE("VertexShader.vert.spv"), SHADERFILE("Display.frag.spv"), SHADERFILE("Display.frag.spv")},// ShaderPair_Display,
+    {SHADERFILE("VertexShader.vert.spv"), SHADERFILE("Downsample.frag.spv"), SHADERFILE("Downsample.frag.spv")},                              // ShaderPair_Downsample,
+    {SHADERFILE("VertexShader.vert.spv"), SHADERFILE("BlurBase-Horizontal.frag.spv"), SHADERFILE("BlurBase-Horizontal-Ext.frag.spv")},        // ShaderPair_Blur_Horizontal,
+    {SHADERFILE("VertexShader.vert.spv"), SHADERFILE("BlurBase-Vertical.frag.spv"), SHADERFILE("BlurBase-Vertical-Ext.frag.spv")},            // ShaderPair_Blur_Vertical,
+    {SHADERFILE("VertexShader.vert.spv"), SHADERFILE("Display.frag.spv"), SHADERFILE("Display.frag.spv")},                                    // ShaderPair_Display,
 };
 
 ///
@@ -261,14 +262,32 @@ bool BloomImageprocessing::Initialize(uintptr_t windowHandle, uintptr_t hInstanc
         case ShaderPair_Blur_Horizontal:
         case ShaderPair_Blur_Vertical:
         {
-            dataSize = 32 * sizeof(float);
-            pUboData = (float*)calloc(32, sizeof(float));
-
-            pUboData[0] = (float)gBlurFilterSize;
-
-            for (uint32_t index = 0; index < gBlurFilterSize; index++)
+            if (gUseLinearSampling)
             {
-                pUboData[index + 1] = pRawTexData[index];
+                // 优化后需要存储权重和偏移
+                int optWightSize = gBlurFilterSize / 2 + 1;
+
+                dataSize    = 64 * sizeof(float);
+                pUboData    = (float *) calloc(64, sizeof(float));
+                pUboData[0] = (float) optWightSize;
+
+                float *weights = pUboData + 1;
+                float *offsets = pUboData + 32;        // 偏移量从索引 32 开始
+
+                // 计算优化后的权重和采样位置
+                BuildOptimizedWeightArray(weights, offsets, pRawTexData);
+            }
+            else
+            {
+                // 原始实现
+                dataSize    = 64 * sizeof(float);
+                pUboData    = (float *) calloc(64, sizeof(float));
+                pUboData[0] = (float) gBlurFilterSize;
+                for (uint32_t index = 0; index < gBlurFilterSize; index++)
+                {
+                    pUboData[index + 1]  = pRawTexData[index];
+                    pUboData[index + 32] = (float) index - gBlurFilterSize / 2;
+                }
             }
             break;
         }
@@ -729,7 +748,7 @@ void BloomImageprocessing::BuildCmdBuffer(uint32_t idx)
     pCmdBuf->Reset();
     pCmdBuf->Begin();
 
-    for (int i = 0; i < 500; ++i)
+    for (int i = 0; i < 200; ++i)
     {
         for (uint32_t pp = 0; pp < Pass_Count; ++pp)
         {
@@ -782,3 +801,34 @@ void BloomImageprocessing::BuildWeightArray(uint32_t weightSize, float* pWeightA
     // 清理临时数组
     delete[] pTriVals;
 }
+
+// 计算线性采样的权重和偏移
+void BloomImageprocessing::BuildOptimizedWeightArray(float *weights, float *offsets, float *pRawWeightData)
+{
+    int centerIndex   = gBlurFilterSize / 2;
+    int optWeightSize = gBlurFilterSize / 2 + 1;
+
+    // center weight divided into half
+    pRawWeightData[centerIndex] *= 0.5f;
+
+    // Process pairs of weights to compute optimized weights and offsets
+    for (int i = 0; i < optWeightSize / 2; i++)
+    {
+        float weight1 = pRawWeightData[i * 2];
+        float weight2 = pRawWeightData[i * 2 + 1];
+
+        // New weight is sum of the pair
+        weights[i] = weight1 + weight2;
+        // mirror the weights
+        weights[optWeightSize - 1 - i] = weights[i];
+
+        int offset1 = i * 2 - centerIndex;
+        int offset2 = i * 2 + 1 - centerIndex;
+        // New offset is weighted average position
+        offsets[i] = (weight1 * offset1 + weight2 * offset2) / (weight1 + weight2);
+        // mirror the offsets
+        offsets[optWeightSize - 1 - i] = -offsets[i];
+    }
+}
+
+// 1 1 1 1
